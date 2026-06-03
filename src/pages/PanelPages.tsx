@@ -1295,7 +1295,7 @@ export const ReservationPanel = () => {
       setLoading(true);
       const { data, error } = await supabase
         .from("reservas")
-        .select(`*, empleados:empleado_id (nombre)`)
+        .select("*")
         .order("fecha", { ascending: true });
 
       if (error) throw error;
@@ -1393,6 +1393,33 @@ export const ReservationPanel = () => {
       observaciones: datosReserva.notes,
       empleado_id: userData?.id,
     };
+
+    const { data: reservaExistente, error: errorValidacion } =
+  await supabase
+    .from("reservas")
+    .select("*")
+    .eq("fecha", resDB.fecha)
+    .eq("hora", resDB.hora)
+    .eq("numero_mesa", resDB.numero_mesa)
+    .neq("estado", "cancelada");
+
+if (errorValidacion) throw errorValidacion;
+
+// Si existe una reserva activa para esa mesa
+if (
+  reservaExistente &&
+  reservaExistente.length > 0
+) {
+  // Permitir editar la misma reserva sin bloquearse a sí misma
+  if (
+    !editingReserva ||
+    reservaExistente[0].id !== editingReserva.id
+  ) {
+    throw new Error(
+      "La mesa seleccionada ya se encuentra ocupada para esa fecha y hora."
+    );
+  }
+}
 
     if (editingReserva) {
       const { error } = await supabase
